@@ -52,6 +52,8 @@ function QueueSystem() {
     init();
   }, []);
 
+  
+
   function handleRegisterName() {
     const trimmed = name.trim();
     if (trimmed === '') return;
@@ -74,7 +76,7 @@ function QueueSystem() {
     }
   }
 
-  function clearQueuue() {
+  function clearQueue() {
     if (!isAdmin) return;
     if (window.confirm('Are you sure you want to clear the queue?')) {
       setQueue([]);
@@ -177,7 +179,7 @@ function QueueSystem() {
                 <div className="button-group">
                   <button onClick={enqueueByName}>Enqueue by Name</button>
                   <button onClick={dequeueByName}>Dequeue by Name</button>
-                  <button onClick={clearQueuue}>Clear Queue</button>
+                  <button onClick={clearQueue}>Clear Queue</button>
                 </div>
                 
               </div>
