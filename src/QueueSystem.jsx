@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { db } from './firebase'; 
+import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 import './index.css';
 
@@ -8,10 +10,13 @@ function QueueSystem() {
   const [fingerprint, setFingerprint] = useState('');
   const [showModal, setShowModal] = useState(true);
   const [devName, setDevName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminAccounts = ['Alex', 'Admin'];
 
   function handleDevNameChange(e) {
     setDevName(e.target.value);
   }
+
   function enqueueByName() {
     const trimmed = devName.trim();
     if(!trimmed) return;
@@ -27,7 +32,7 @@ function QueueSystem() {
     setDevName('');
   }
 
-  // Fingerprint + Load name
+
   useEffect(function () {
     async function init() {
       const fp = await FingerprintJS.load();
@@ -50,9 +55,33 @@ function QueueSystem() {
   function handleRegisterName() {
     const trimmed = name.trim();
     if (trimmed === '') return;
+
+    const existingFingerprint = localStorage.getItem(`finger_of_${trimmed}`);
+    if (existingFingerprint && existingFingerprint !== fingerprint) {
+      alert('This account is already in use on another device.');
+      return;
+    }
+
+    // Save name + fingerprint
     localStorage.setItem(`name_${fingerprint}`, trimmed);
+    localStorage.setItem(`finger_of_${trimmed}`, fingerprint);
+    setName(trimmed);
     setShowModal(false);
+
+    // Set admin if name matches
+    if (adminAccounts.includes(trimmed)) {
+      setIsAdmin(true); 
+    }
   }
+
+  function clearQueuue() {
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to clear the queue?')) {
+      setQueue([]);
+      alert('Queue cleared!');
+    }
+  }
+
 
   function enqueueUser() {
     if (!name) return;
@@ -63,7 +92,7 @@ function QueueSystem() {
   function dequeueUser() {
     setQueue(prev => prev.filter(p => p.name !== name));
   }
-  // Shift the first row (2 players) to the end, pushing everything up
+
   function nextRow() {
     if (queue.length <= 2) return;
     const firstRow = queue.slice(0, 2);
@@ -71,7 +100,6 @@ function QueueSystem() {
     setQueue([...rest, ...firstRow]);
   }
 
-  // Shift the last row (2 players) to the front, pulling everything down
   function prevRow() {
     if (queue.length <= 2) return;
     const rest = queue.slice(0, -2);
@@ -84,8 +112,7 @@ function QueueSystem() {
     window.alert(`⏰ ${current || 'No players'} — you have 30 seconds to confirm!`);
   }
 
-  // Rendering
-  function renderRows() {
+  function renderRows() { 
     const rows = [];
     for (let i = 0; i < queue.length; i += 2) {
       rows.push(
@@ -138,6 +165,7 @@ function QueueSystem() {
 
           <div className="button-group">
             <button onClick={enqueueUser}>Enqueue</button>
+            {isAdmin && (
               <div className="dev-panel">
                 <h4>Developer Tools</h4>
                 <input
@@ -149,8 +177,11 @@ function QueueSystem() {
                 <div className="button-group">
                   <button onClick={enqueueByName}>Enqueue by Name</button>
                   <button onClick={dequeueByName}>Dequeue by Name</button>
+                  <button onClick={clearQueuue}>Clear Queue</button>
                 </div>
+                
               </div>
+            )}
             <button onClick={dequeueUser}>Dequeue</button>
             <button onClick={nextRow}>Next</button>
             <button onClick={prevRow}>Prev</button>
