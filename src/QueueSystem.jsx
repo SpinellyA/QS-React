@@ -13,7 +13,7 @@ function QueueSystem() {
   const [showModal, setShowModal] = useState(true);
   const [devName, setDevName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const adminAccounts = ['Alex', 'Admin'];
+  const adminAccounts = ['Alex', 'Admin', 'Bustin'];
   const [isFrozen, setIsFrozen] = useState(false);
   const [isEnqueueing, setIsEnqueueing] = useState(false);
 
@@ -44,7 +44,44 @@ async function dequeueByName() {
     await deleteDoc(doc(db, 'queue', docSnap.id));
   });
   setDevName('');
-}
+  }
+  
+
+  //Deque by passing the name
+  async function dequeuePerson(userName) {
+  console.log('Dequeuing:', userName);
+  const trimmed = userName.trim();
+  if (!trimmed) return;
+
+  const q = query(collection(db, 'queue'), where('name', '==', trimmed));
+  const snapshot = await getDocs(q);
+  snapshot.forEach(async (docSnap) => {
+    await deleteDoc(doc(db, 'queue', docSnap.id));
+  });
+  setDevName('');
+  }
+  
+  const swapRow = async (rowIndex) => {
+  const index1 = rowIndex;
+  const index2 = rowIndex + 1;
+
+  // Create a copy of the queue
+  const newQueue = [...queue];
+
+  // Swap logic
+  [newQueue[index1], newQueue[index2]] = [newQueue[index2], newQueue[index1]];
+
+  // Update local state if you're using useState
+  setQueue(newQueue);
+
+  // Save to Firestore
+  for (let i = 0; i < newQueue.length; i++) {
+    const entry = newQueue[i];
+    await updateDoc(doc(db, 'queue', entry.id), {
+      position: i
+    });
+  }
+};
 
   function freezeQueue() {
     if(!isAdmin) return;
@@ -226,8 +263,19 @@ async function dequeueUser() {
 
       rows.push(
         <tr key={i}>
-          <td>{String(name1)}</td>
-          <td>{String(name2)}</td>
+          <td>
+            <span>{String(name1)}</span>
+            {isAdmin && name1 && <button className="remove-button" onClick={() => dequeuePerson(String(name1))}>X</button>}
+          </td>
+          <td>
+            {String(name2)}
+            {isAdmin && name2 && <button className="remove-button" onClick={() => dequeuePerson(String(name2))}>X</button>}
+          </td>
+           {isAdmin && name1 && name2 && (
+          <td>
+            <button onClick={() => swapRow(i)}>Swap</button>
+          </td>
+        )}
         </tr>
       );
     }
@@ -260,7 +308,7 @@ async function dequeueUser() {
 
       {!showModal && (
         <>
-          <h2>Welcome back, {name}!</h2>
+          <h2>Welcome to Maimai, {name}!</h2>
 
           <div className="table-responsive">
             <table className="queue-table">
